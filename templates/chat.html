@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='/style.css') }}">
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+            const token = sessionStorage.getItem("token");
+            if (!token) {
+                alert("You are not authenticated. Please log in.");
+                window.location.href = "/login";
+                return;
+            }
+
+            const urlParts = window.location.pathname.split("/");
+            const friendId = urlParts[urlParts.length - 1];
+
+            try {
+                const response = await fetch(`/chat/data/${friendId}`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.message);
+                    return;
+                }
+
+                const data = await response.json();
+                document.getElementById("chat-header").textContent = `Chat with ${data.friend_username}`;
+
+                const chatBox = document.getElementById("chatBox");
+                chatBox.innerHTML = "";
+
+                function appendMessage(message, isSender) {
+                    const messageDiv = document.createElement("div");
+                    messageDiv.textContent = `${message}`;
+                    messageDiv.classList.add(isSender ? "sent-message" : "received-message");
+                    chatBox.appendChild(messageDiv);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+
+                data.messages.forEach(msg => {
+                    appendMessage(
+                        msg.message,
+                        msg.sender_id != friendId
+                    );
+                });
+
+                const socket = io("http://localhost:5000", { query: { token: token } });
+                socket.on("connect", function () {
+                    console.log("Connected to WebSocket");
+                });
+
+                socket.on("receive_message", function (data) {
+                    console.log("Received message:", data.message);
+                    appendMessage(
+                        data.message,
+                        data.sender_id != friendId
+                    );
+                });
+
+                document.getElementById("sendMessage").addEventListener("click", function () {
+                    const message = document.getElementById("message").value.trim();
+                    if (message) {
+                        socket.emit("send_message", { receiver_id: friendId, message: message });
+                        document.getElementById("message").value = "";
+                    }
+                });
+
+            } catch (error) {
+                console.error("Error fetching chat data:", error);
+                alert("Error fetching chat data.");
+            }
+
+            const messageInput = document.getElementById("message");
+            messageInput.addEventListener("keydown", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    document.getElementById("sendMessage").click();
+                }
+            });
+        });
+    </script>
+</head>
+<body>
+    <div class="background-side"></div> 
+    <div class="main-container">
+        <h2 class="chat-header" id="chat-header">Chat</h2>
+        <div class="chat-container">
+            <div class="chat-box" id="chatBox"></div>
+            <div class="input-container">
+                <input type="text" class="message" id="message" placeholder="Type a message...">
+                <button id="sendMessage">Send</button>
+            </div>
+        </div>
+    </div>
+    <div class="background-side-right"></div> 
+</body>
+</html>

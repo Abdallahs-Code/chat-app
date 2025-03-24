@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='/style.css') }}">
+    <title>Dashboard</title>
+    <style>
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background-color:  #00ff99; 
+            color: #000; 
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+        .tab:hover {
+            background-color:  #00ff99; 
+        }
+        h1 {
+            color:white;
+        }
+    </style>
+</head>
+<body style="display: none;" id="dashboard-body">
+    <h1 id="user-info" style="text-align: center; color: #00ff99;"></h1>
+
+    <div class="tabs">
+        <a class="tab" href="/search">Search for Friends</a>
+        <a class="tab" href="/friend_requests">Pending Friend Requests</a>
+        <a class="tab" href="/friends">View Friends</a>
+        <a class="tab" href="#" onclick="logout()">Logout</a>
+    </div>
+
+    <script>
+        let token
+        document.addEventListener("DOMContentLoaded", () => {
+            token = sessionStorage.getItem("token");
+            if (!token) {
+                alert("Unauthorized access. Please log in.");
+                window.location.href = "/login";
+            }
+            loadDashboard();
+        });
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch("/dashboard/data", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById("user-info").textContent = `${data.message} ${data.username}`;
+                    document.getElementById("dashboard-body").style.display = "block";
+                } else {
+                    alert("Session expired. Please log in again.");
+                    sessionStorage.removeItem("token");
+                    window.location.href = "/login";
+                }
+            } catch (error) {
+                console.error("Dashboard error:", error);
+                alert("An error occurred. Please try again.");
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem("token");
+            window.location.href = "/login";
+        }
+    </script>
+</body>
+</html>

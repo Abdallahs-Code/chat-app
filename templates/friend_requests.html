@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Requests</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #111111;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #00ff99;
+            margin-bottom: 20px;
+        }
+        .request-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .request-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #222222;
+            border-radius: 5px;
+            width: auto;
+            text-align: center;
+        }
+        button {
+            background-color: #00ff99;
+            color: black;
+            border: none;
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #009966;
+        }
+        a {
+            color: #00ff99;
+            text-decoration: none;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Friend Requests</h1>
+    
+    <div id="requests-container"></div>
+    
+    <a href="/dashboard">Back to Dashboard</a>
+
+    <script>
+        let token;
+        document.addEventListener("DOMContentLoaded", () => {
+            token = sessionStorage.getItem("token");
+            if (!token) {
+                alert("Unauthorized access. Please log in.");
+                window.location.href = "/login";
+            }
+            getFriendRequests();
+        });
+        
+        async function getFriendRequests() {
+            try {
+                const response = await fetch("/friend_requests/data", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.message);
+                } else {
+                    const data = await response.json();
+                    const requestsList = document.createElement("ul");
+                    requestsList.className = "request-list";
+
+                    data.requests.forEach(request => {
+                        const listItem = document.createElement("li");
+                        listItem.className = "request-item";
+                        listItem.textContent = request.sender_username;
+                        
+                        const acceptButton = document.createElement("button");
+                        acceptButton.textContent = "Accept";
+                        acceptButton.onclick = async () => {
+                            try {
+                                const response = await fetch(`/accept_friend_request/${request.id}`, {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": "Bearer " + token
+                                    },
+                                });
+                                if (!response.ok) {
+                                    const data = await response.json();
+                                    alert(data.message);
+                                } else {
+                                    alert("Friend request accepted.");
+                                    listItem.remove();
+                                }
+                            } catch (error) {
+                                alert("Accept error: " + error.message);
+                            }
+                        };
+
+                        const rejectButton = document.createElement("button");
+                        rejectButton.textContent = "Reject";
+                        rejectButton.onclick = async () => {
+                            try {
+                                const response = await fetch(`/reject_friend_request/${request.id}`, {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        "Authorization": "Bearer " + token
+                                    },
+                                });
+                                if (!response.ok) {
+                                    const data = await response.json();
+                                    alert(data.message);
+                                } else {
+                                    alert("Friend request rejected.");
+                                    listItem.remove();
+                                }
+                            } catch (error) {
+                                alert("Reject error: " + error.message);
+                            }
+                        };
+
+                        listItem.appendChild(acceptButton);
+                        listItem.appendChild(rejectButton);
+                        requestsList.appendChild(listItem);
+                    });
+                    document.getElementById("requests-container").appendChild(requestsList);
+                }
+            } catch (error) {
+                alert("Search error: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #111111;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #00ff99;
+            margin-bottom: 20px;
+        }
+        #friendsList {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #friendsList li {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #222222;
+            border-radius: 5px;
+            width: auto;
+            text-align: center;
+        }
+        a {
+            color: #00ff99;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        #noFriendsMessage {
+            color: #ffffff;
+            margin-top: 20px;
+        }
+        .link-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Your Friends</h1>
+    
+    <ul id="friendsList"></ul>
+    <p id="noFriendsMessage" style="display: none;">You have no friends yet</p>
+
+    <div class="link-container">
+        <a href="/dashboard">Back to Dashboard</a>
+    </div>
+
+    <script>
+        let token;
+        document.addEventListener("DOMContentLoaded", () => {
+            token = sessionStorage.getItem("token");
+            if (!token) {
+                alert("Unauthorized access. Please log in.");
+                window.location.href = "/login";
+            }
+            loadFriends();
+        });
+
+        async function loadFriends() {
+            try {
+                const response = await fetch("/friends/data", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.message);
+                    return;
+                }
+
+                const data = await response.json();
+                const friendsList = document.getElementById("friendsList");
+                const noFriendsMessage = document.getElementById("noFriendsMessage");
+
+                friendsList.innerHTML = "";
+
+                if (data.friends.length === 0) {
+                    noFriendsMessage.style.display = "block";
+                } else {
+                    noFriendsMessage.style.display = "none";
+
+                    data.friends.forEach(friend => {
+                        const listItem = document.createElement("li");
+                        listItem.textContent = friend.friend_username + " ";
+
+                        const chatLink = document.createElement("a");
+                        chatLink.href = `/chat/${friend.friend_id}`;
+                        chatLink.textContent = "Chat";
+
+                        listItem.appendChild(chatLink);
+                        friendsList.appendChild(listItem);
+                    });
+                }
+            } catch (error) {
+                alert("Error loading friends: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

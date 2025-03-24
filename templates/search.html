@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Friends</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #111111;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+        }
+
+        h2 {
+            color: #00ff99;
+            margin-bottom: 20px;
+        }
+
+        #searchInput {
+            width: auto;
+            height: 30px; 
+            padding: 0 10px; 
+            margin: 10px 0;
+            border: 1px solid #00ff99;
+            border-radius: 5px;
+            background-color: #ffffff;
+            color: #000;
+            font-size: 16px;
+            box-sizing: border-box; 
+        }
+
+        button {
+            background-color: #00ff99;
+            color: black;
+            border: none;
+            padding: 0 20px; 
+            height: 30px; 
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px; 
+        }
+
+        button:hover {
+            background-color: #009966;
+        }
+
+        #results {
+            list-style-type: none;
+            padding: 0;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #results li {
+            background-color: #222222;
+            padding-left: 10px;
+            padding-right: 10px;
+            padding-bottom: 10px;
+            border-radius: 5px;
+            display: inline-block;
+            width: auto;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        #results button {
+            background-color: #00ff99;
+            color: black;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 10px;
+            margin-left: 10px;
+        }
+
+        #results button:hover {
+            background-color: #009966;
+        }
+
+        .link-container {
+            margin-top: 10px;
+        }
+
+        a {
+            color: #00ff99;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h2>Search for Friends</h2>
+
+    <div>
+        <input type="text" id="searchInput" placeholder="Enter username...">
+        <button onclick="searchUsers()">Search</button>
+    </div>
+
+    <ul id="results"></ul>
+
+    <div class="link-container">
+        <a href="/dashboard">Back to Dashboard</a>
+    </div>
+
+    <script>
+        let token;
+        document.addEventListener("DOMContentLoaded", () => {
+            token = sessionStorage.getItem("token");
+            if (!token) {
+                alert("Unauthorized access. Please log in.");
+                window.location.href = "/login";
+            }
+        });
+
+        async function searchUsers() {
+            document.getElementById("results").innerHTML = "";
+            const query = document.getElementById("searchInput").value.trim();
+
+            try {
+                const response = await fetch(`/search/data?query=${query}`, {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    alert(errorData.message);
+                    return;
+                }
+
+                const data = await response.json();
+                const resultsList = document.getElementById("results");
+
+                data.users.forEach(user => {
+                    const listItem = document.createElement("li");
+                    listItem.textContent = user.username;
+
+                    const addButton = document.createElement("button");
+                    addButton.textContent = "Send Friend Request";
+                    addButton.onclick = () => sendFriendRequest(user.id);
+
+                    listItem.appendChild(addButton);
+                    resultsList.appendChild(listItem);
+                });
+            } catch (error) {
+                alert("Search error: " + error.message);
+            }
+        }
+
+        async function sendFriendRequest(receiverId) {
+            try {
+                const response = await fetch(`/send_friend_request/${receiverId}`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + token,
+                        "Content-Type": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.message);
+                } else {
+                    alert("Friend request sent successfully!");
+                }
+            } catch (error) {
+                alert("Error sending friend request: " + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
