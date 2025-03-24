@@ -1,5 +1,4 @@
-in folder chat-app, run these commands:
-- venv/Scripts/activate
+in folder chat-app, run:
 - flask run
 then go with the link
 
