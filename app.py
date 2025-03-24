@@ -13,6 +13,7 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 load_dotenv()
 KEY = os.getenv("KEY")
+print("Database URL:", KEY)
 
 if KEY is None:
     raise ValueError("Key not found! Set KEY in your environment.")
